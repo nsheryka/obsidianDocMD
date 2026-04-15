@@ -1,0 +1,23 @@
+{
+  "name": "obsidian-docmd",
+  "version": "1.0.0",
+  "description": "Bidirectional Google Docs to Markdown conversion for Obsidian",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "dependencies": {
+    "unified": "^11.0.5",
+    "remark-parse": "^11.0.0",
+    "remark-gfm": "^4.0.0"
+  },
+  "devDependencies": {
+    "obsidian": "latest",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "esbuild": "^0.20.0",
+    "builtin-modules": "^3.3.0",
+    "tslib": "^2.6.0"
+  }
+}

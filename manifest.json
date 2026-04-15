@@ -1,0 +1,9 @@
+{
+  "id": "docmd",
+  "name": "DocMD",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Bidirectional Google Docs to Markdown conversion with image support and recursive link following",
+  "author": "nsheryka",
+  "isDesktopOnly": true
+}

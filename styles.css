@@ -1,0 +1,176 @@
+/* DocMD Plugin Styles */
+
+/* Modal layout */
+.docmd-modal .setting-item {
+  border-top: none;
+}
+
+.docmd-modal textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Frontmatter template textarea (settings tab) */
+.docmd-frontmatter-textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--font-monospace);
+  font-size: var(--font-smaller);
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  margin-bottom: 12px;
+}
+
+/* Button row */
+.docmd-button-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Progress modal */
+.docmd-progress-modal .docmd-progress-log {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 12px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-smaller);
+}
+
+.docmd-log-entry {
+  padding: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.docmd-log-info {
+  color: var(--text-muted);
+}
+
+.docmd-log-success {
+  color: var(--color-green);
+}
+
+.docmd-log-error {
+  color: var(--color-red);
+}
+
+/* Diff view */
+.docmd-diff-modal {
+  width: 90vw;
+  max-width: none;
+  height: 80vh;
+  max-height: 80vh;
+  resize: both;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.docmd-diff-modal .modal-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.docmd-diff-container {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 12px;
+}
+
+.docmd-diff-column {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.docmd-diff-header {
+  padding: 4px 8px;
+  font-weight: bold;
+  font-size: var(--font-smaller);
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.docmd-diff-lines {
+  overflow-y: auto;
+  flex: 1;
+  font-family: var(--font-monospace);
+  font-size: var(--font-smaller);
+}
+
+.docmd-diff-line {
+  padding: 1px 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.4em;
+}
+
+.docmd-diff-removed {
+  background: rgba(255, 0, 0, 0.15);
+}
+
+.docmd-diff-added {
+  background: rgba(0, 255, 0, 0.15);
+}
+
+.docmd-diff-blank {
+  background: var(--background-secondary-alt);
+}
+
+/* Word-level highlights within modified lines */
+.docmd-diff-removed-word {
+  background: rgba(255, 0, 0, 0.35);
+  border-radius: 2px;
+}
+
+.docmd-diff-added-word {
+  background: rgba(0, 255, 0, 0.35);
+  border-radius: 2px;
+}
+
+/* Setup instructions expandable */
+.docmd-setup-instructions {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  font-size: var(--font-smaller);
+  color: var(--text-muted);
+}
+
+.docmd-setup-instructions summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--text-normal);
+}
+
+.docmd-setup-instructions ol {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.docmd-setup-instructions li {
+  margin-bottom: 4px;
+}
+
+/* Conflict modal */
+.docmd-conflict-modal p {
+  margin-bottom: 12px;
+}

@@ -1,0 +1,34 @@
+# Node
+node_modules/
+out/
+
+# Build output (CI builds fresh for releases)
+main.js
+
+# Obsidian plugin data (contains OAuth tokens and settings)
+data.json
+
+# Dev context (contains personal/project info)
+CONTEXT.md
+
+# IDEs and tools
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Environment variables and credentials
+.env
+credentials.json
+*.credentials.json
+oauth/
+
+# Build artifacts
+*.dmg
+*.dmg.blockmap
+*.log
