@@ -1,6 +1,6 @@
 {
   "name": "obsidian-docmd",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bidirectional Google Docs to Markdown conversion for Obsidian",
   "main": "main.js",
   "scripts": {
