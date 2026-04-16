@@ -4,7 +4,7 @@
  * Replaces Node http/https/fs with Obsidian's requestUrl and vault API.
  */
 
-import { App, TFile, TFolder, requestUrl, normalizePath } from 'obsidian';
+import { App, TFile, requestUrl, normalizePath } from 'obsidian';
 
 /**
  * Download all remote images in a markdown string, save them to the vault's
@@ -70,7 +70,9 @@ async function fetchImageBuffer(url: string): Promise<ArrayBuffer> {
  * attachment folder configuration.
  */
 function getAttachmentPath(app: App, notePath: string, filename: string): string {
-  const attachmentFolder = (app.vault as any).getConfig('attachmentFolderPath') || '';
+  const attachmentFolder =
+    (app.vault as unknown as { getConfig: (key: string) => string | undefined })
+      .getConfig('attachmentFolderPath') || '';
   let folder: string;
 
   if (!attachmentFolder || attachmentFolder === '/') {

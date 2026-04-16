@@ -7,6 +7,7 @@
 import { App, TFile, normalizePath } from 'obsidian';
 import { parseDocId } from '../google/drive';
 import { getDocument, createDocument, batchUpdate } from '../google/docs';
+import type { GoogleDocsRequest } from '../google/types';
 import {
   parseFolderId,
   moveFileToFolder,
@@ -72,7 +73,7 @@ export async function convertDocWithLinks(
       const prefix = `${docId.slice(0, 8)}-`;
       markdown = await downloadImagesInMarkdown(app, markdown, notePath, prefix);
 
-      visited.set(docId, { title: doc.title, safeTitle, notePath, markdown });
+      visited.set(docId, { title: doc.title ?? 'Untitled', safeTitle, notePath, markdown });
 
       // Find linked Google Docs
       const linkedUrls = findGoogleDocLinks(markdown);
@@ -121,8 +122,8 @@ export async function convertDocWithLinks(
     }
 
     const existing = app.vault.getAbstractFileByPath(notePath);
-    if (existing) {
-      await app.vault.modify(existing as TFile, markdown);
+    if (existing instanceof TFile) {
+      await app.vault.modify(existing, markdown);
     } else {
       await app.vault.create(notePath, markdown);
     }
@@ -191,6 +192,7 @@ export async function convertMdWithLinks(
     try {
       const newDoc = await createDocument(token, info.title);
       const docId = newDoc.documentId;
+      if (!docId) throw new Error('Google Docs API did not return a document ID');
       await moveFileToFolder(token, docId, folderId);
       const docUrl = await getFileWebLink(token, docId);
       docMap.set(filePath, { docId, docUrl, title: info.title });
@@ -263,7 +265,7 @@ async function populateDoc(app: App, token: string, docId: string, markdown: str
   if (tables.length > 0) {
     const docsApi = {
       getDocument: () => getDocument(token, docId),
-      batchUpdate: (reqs: any[]) => batchUpdate(token, docId, reqs),
+      batchUpdate: (reqs: GoogleDocsRequest[]) => batchUpdate(token, docId, reqs),
     };
     for (const tableInfo of tables) {
       const cellImages = await insertTableIntoDoc(docsApi, tableInfo);
@@ -293,7 +295,13 @@ async function insertImages(app: App, token: string, docId: string, images: Imag
       const { contentUri, tempDocId } = await getImageContentUri(token, imageData, mimeType);
       if (!contentUri) {
         console.error(`DocMD: Failed to get content URI for ${img.src}`);
-        if (tempDocId) try { await deleteFile(token, tempDocId); } catch {}
+        if (tempDocId) {
+          try {
+            await deleteFile(token, tempDocId);
+          } catch {
+            // Best-effort cleanup; ignore errors
+          }
+        }
         continue;
       }
 
@@ -304,7 +312,11 @@ async function insertImages(app: App, token: string, docId: string, images: Imag
         { insertInlineImage: { location: { index: img.index }, uri: contentUri } },
       ]);
 
-      try { await deleteFile(token, tempDocId); } catch {}
+      try {
+        await deleteFile(token, tempDocId);
+      } catch {
+        // Best-effort cleanup; ignore errors
+      }
     } catch (err) {
       console.error(`DocMD: Failed to insert image ${img.src}: ${(err as Error).message}`);
     }

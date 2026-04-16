@@ -18,7 +18,7 @@ export default class DocMDPlugin extends Plugin {
     this.addCommand({
       id: 'doc-to-md',
       name: 'Import Google Doc to Markdown',
-      callback: () => this.openImportModal(),
+      callback: () => { this.openImportModal(); },
     });
 
     this.addCommand({
@@ -57,7 +57,7 @@ export default class DocMDPlugin extends Plugin {
                 const mdFiles = this.app.vault.getMarkdownFiles()
                   .filter(f => f.path.startsWith(file.path + '/'));
                 if (mdFiles.length === 0) {
-                  new Notice('DocMD: No markdown files in this folder.');
+                  new Notice('No Markdown files in this folder');
                   return;
                 }
                 this.openExportModal(mdFiles);
@@ -84,7 +84,7 @@ export default class DocMDPlugin extends Plugin {
 
   private openImportModal(presetFolder?: TFolder): void {
     if (!this.authManager.isAuthenticated()) {
-      new Notice('DocMD: Connect your Google account in settings first.');
+      new Notice('Connect your Google account in settings first');
       return;
     }
     new DocToMdModal(this.app, this, presetFolder).open();
@@ -92,7 +92,7 @@ export default class DocMDPlugin extends Plugin {
 
   private openExportModal(files: TFile[]): void {
     if (!this.authManager.isAuthenticated()) {
-      new Notice('DocMD: Connect your Google account in settings first.');
+      new Notice('Connect your Google account in settings first');
       return;
     }
     new MdToDocModal(this.app, this, files).open();

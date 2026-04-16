@@ -111,8 +111,6 @@ export function computeWordDiff(oldStr: string, newStr: string): { oldSegments: 
   }
 
   // Backtrack
-  const oldSegments: WordSegment[] = [];
-  const newSegments: WordSegment[] = [];
   let i2 = m;
   let j2 = n;
 

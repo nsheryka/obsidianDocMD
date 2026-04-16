@@ -11,6 +11,14 @@
   resize: vertical;
 }
 
+.docmd-wide-input {
+  width: 100%;
+}
+
+.docmd-log-hidden {
+  display: none;
+}
+
 /* Frontmatter template textarea (settings tab) */
 .docmd-frontmatter-textarea {
   width: 100%;

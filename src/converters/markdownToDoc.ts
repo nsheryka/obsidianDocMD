@@ -12,6 +12,7 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
+import type { GoogleDocsRequest, GoogleDocument, GoogleTable } from '../google/types';
 
 export interface ImageRef {
   index: number;
@@ -26,15 +27,31 @@ export interface TableInfo {
 }
 
 export interface MarkdownToDocResult {
-  textRequests: any[];
-  styleRequests: any[];
+  textRequests: GoogleDocsRequest[];
+  styleRequests: GoogleDocsRequest[];
   tables: TableInfo[];
   images: ImageRef[];
 }
 
+/**
+ * Minimal structural type for the remark/mdast AST nodes this converter walks.
+ * Only the fields actually consumed here are listed; everything else is left
+ * implicit because individual node types are narrowed by their `type` tag.
+ */
+interface MdNode {
+  type: string;
+  value?: string;
+  children?: MdNode[];
+  depth?: number;
+  ordered?: boolean;
+  url?: string;
+  alt?: string;
+  position?: { start: { line: number }; end: { line: number } };
+}
+
 interface Collector {
   textParts: { text: string }[];
-  styles: any[];
+  styles: GoogleDocsRequest[];
   tables: TableInfo[];
   images: ImageRef[];
   index: number;
@@ -72,23 +89,25 @@ export function markdownToDocRequests(markdownContent: string): MarkdownToDocRes
     index: 1,
   };
 
-  const children = (tree as any).children;
+  const children = (tree as { children: MdNode[] }).children;
   for (let i = 0; i < children.length; i++) {
     // Preserve blank lines between blocks by checking position gaps
-    if (i > 0 && children[i].position && children[i - 1].position) {
-      const prevEnd = children[i - 1].position.end.line;
-      const currStart = children[i].position.start.line;
+    const prev = children[i - 1];
+    const curr = children[i];
+    if (i > 0 && curr.position && prev?.position) {
+      const prevEnd = prev.position.end.line;
+      const currStart = curr.position.start.line;
       // A gap of 2+ lines means there was at least one blank line
       const blankLines = currStart - prevEnd - 1;
       for (let b = 0; b < blankLines; b++) {
         emit(col, '\n');
       }
     }
-    processNode(children[i], col);
+    processNode(curr, col);
   }
 
   // Build text-insertion requests
-  const textRequests: any[] = [];
+  const textRequests: GoogleDocsRequest[] = [];
   let idx = 1;
   for (const part of col.textParts) {
     textRequests.push({
@@ -102,7 +121,7 @@ export function markdownToDocRequests(markdownContent: string): MarkdownToDocRes
 
 // -- Node processors --
 
-function processNode(node: any, col: Collector): void {
+function processNode(node: MdNode, col: Collector): void {
   switch (node.type) {
     case 'heading':       processHeading(node, col); break;
     case 'paragraph':     processParagraph(node, col); break;
@@ -114,19 +133,19 @@ function processNode(node: any, col: Collector): void {
   }
 }
 
-function processHeading(node: any, col: Collector): void {
+function processHeading(node: MdNode, col: Collector): void {
   const startIndex = col.index;
-  emit(col, extractInlineText(node.children) + '\n');
+  emit(col, extractInlineText(node.children ?? []) + '\n');
   col.styles.push({
     updateParagraphStyle: {
       range: { startIndex, endIndex: col.index - 1 },
-      paragraphStyle: { namedStyleType: `HEADING_${node.depth}` },
+      paragraphStyle: { namedStyleType: `HEADING_${node.depth ?? 1}` },
       fields: 'namedStyleType',
     },
   });
 }
 
-function processParagraph(node: any, col: Collector): void {
+function processParagraph(node: MdNode, col: Collector): void {
   if (!node.children || node.children.length === 0) {
     emit(col, '\n');
     return;
@@ -138,14 +157,14 @@ function processParagraph(node: any, col: Collector): void {
   for (const r of styleRanges) pushTextStyle(col.styles, r);
 }
 
-function processList(node: any, col: Collector, nestingLevel: number): void {
+function processList(node: MdNode, col: Collector, nestingLevel: number): void {
   const ordered = !!node.ordered;
-  for (const item of node.children) {
+  for (const item of node.children ?? []) {
     if (item.type !== 'listItem') continue;
-    for (const child of item.children) {
+    for (const child of item.children ?? []) {
       if (child.type === 'paragraph') {
         const startIndex = col.index;
-        const { text, styleRanges } = extractInlineTextWithRanges(child.children, startIndex);
+        const { text, styleRanges } = extractInlineTextWithRanges(child.children ?? [], startIndex);
         if (!text) continue;
         emit(col, text + '\n');
         for (const r of styleRanges) pushTextStyle(col.styles, r);
@@ -174,7 +193,7 @@ function processList(node: any, col: Collector, nestingLevel: number): void {
   }
 }
 
-function processCodeBlock(node: any, col: Collector): void {
+function processCodeBlock(node: MdNode, col: Collector): void {
   const startIndex = col.index;
   emit(col, (node.value || '') + '\n');
   col.styles.push({
@@ -198,9 +217,9 @@ function processCodeBlock(node: any, col: Collector): void {
   });
 }
 
-function processBlockquote(node: any, col: Collector): void {
+function processBlockquote(node: MdNode, col: Collector): void {
   const startIndex = col.index;
-  for (const child of node.children) processNode(child, col);
+  for (const child of node.children ?? []) processNode(child, col);
   col.styles.push({
     updateParagraphStyle: {
       range: { startIndex, endIndex: col.index - 1 },
@@ -213,14 +232,14 @@ function processBlockquote(node: any, col: Collector): void {
   });
 }
 
-function processTable(node: any, col: Collector): void {
-  const rows = node.children.filter((n: any) => n.type === 'tableRow');
+function processTable(node: MdNode, col: Collector): void {
+  const rows = (node.children ?? []).filter((n) => n.type === 'tableRow');
   if (rows.length === 0) return;
 
-  const tableData = rows.map((row: any) =>
-    row.children
-      .filter((c: any) => c.type === 'tableCell')
-      .map((cell: any) => extractInlineMarkdown(cell.children).trim())
+  const tableData = rows.map((row) =>
+    (row.children ?? [])
+      .filter((c) => c.type === 'tableCell')
+      .map((cell) => extractInlineMarkdown(cell.children ?? []).trim())
   );
 
   const PLACEHOLDER = '\u200B\n';
@@ -250,30 +269,30 @@ function emit(col: Collector, text: string): void {
   col.index += text.length;
 }
 
-function extractInlineText(nodes: any[]): string {
+function extractInlineText(nodes: MdNode[]): string {
   return nodes.map(inlineNodeToText).join('');
 }
 
-function extractInlineMarkdown(nodes: any[]): string {
+function extractInlineMarkdown(nodes: MdNode[]): string {
   return nodes.map(inlineNodeToMarkdown).join('');
 }
 
-function inlineNodeToMarkdown(node: any): string {
-  if (node.type === 'text') return node.value;
-  if (node.type === 'strong') return `**${node.children.map(inlineNodeToMarkdown).join('')}**`;
-  if (node.type === 'emphasis') return `*${node.children.map(inlineNodeToMarkdown).join('')}*`;
-  if (node.type === 'delete') return `~~${node.children.map(inlineNodeToMarkdown).join('')}~~`;
-  if (node.type === 'inlineCode') return `\`${node.value}\``;
-  if (node.type === 'link') return `[${node.children.map(inlineNodeToMarkdown).join('')}](${node.url})`;
-  if (node.type === 'image') return `![${node.alt || ''}](${node.url})`;
+function inlineNodeToMarkdown(node: MdNode): string {
+  if (node.type === 'text') return node.value ?? '';
+  if (node.type === 'strong') return `**${(node.children ?? []).map(inlineNodeToMarkdown).join('')}**`;
+  if (node.type === 'emphasis') return `*${(node.children ?? []).map(inlineNodeToMarkdown).join('')}*`;
+  if (node.type === 'delete') return `~~${(node.children ?? []).map(inlineNodeToMarkdown).join('')}~~`;
+  if (node.type === 'inlineCode') return `\`${node.value ?? ''}\``;
+  if (node.type === 'link') return `[${(node.children ?? []).map(inlineNodeToMarkdown).join('')}](${node.url ?? ''})`;
+  if (node.type === 'image') return `![${node.alt || ''}](${node.url ?? ''})`;
   if (node.type === 'break') return '\n';
-  if (node.type === 'html' && /^<br\s*\/?>$/i.test(node.value)) return '\n';
+  if (node.type === 'html' && node.value && /^<br\s*\/?>$/i.test(node.value)) return '\n';
   if (node.children) return node.children.map(inlineNodeToMarkdown).join('');
   return '';
 }
 
 function extractInlineTextWithRanges(
-  nodes: any[],
+  nodes: MdNode[],
   baseIndex: number,
   images?: ImageRef[]
 ): { text: string; styleRanges: StyleRange[] } {
@@ -281,28 +300,31 @@ function extractInlineTextWithRanges(
   let text = '';
   let offset = 0;
 
-  function walk(node: any): void {
+  function walk(node: MdNode): void {
     switch (node.type) {
-      case 'text':
-        text += node.value; offset += node.value.length; break;
+      case 'text': {
+        const v = node.value ?? '';
+        text += v; offset += v.length; break;
+      }
       case 'strong': {
-        const s = offset; node.children.forEach(walk);
+        const s = offset; (node.children ?? []).forEach(walk);
         styleRanges.push({ startIndex: baseIndex + s, endIndex: baseIndex + offset, bold: true }); break;
       }
       case 'emphasis': {
-        const s = offset; node.children.forEach(walk);
+        const s = offset; (node.children ?? []).forEach(walk);
         styleRanges.push({ startIndex: baseIndex + s, endIndex: baseIndex + offset, italic: true }); break;
       }
       case 'delete': {
-        const s = offset; node.children.forEach(walk);
+        const s = offset; (node.children ?? []).forEach(walk);
         styleRanges.push({ startIndex: baseIndex + s, endIndex: baseIndex + offset, strikethrough: true }); break;
       }
       case 'inlineCode': {
-        const s = offset; text += node.value; offset += node.value.length;
+        const v = node.value ?? '';
+        const s = offset; text += v; offset += v.length;
         styleRanges.push({ startIndex: baseIndex + s, endIndex: baseIndex + offset, inlineCode: true }); break;
       }
       case 'link': {
-        const s = offset; node.children.forEach(walk);
+        const s = offset; (node.children ?? []).forEach(walk);
         styleRanges.push({ startIndex: baseIndex + s, endIndex: baseIndex + offset, link: node.url }); break;
       }
       case 'image': {
@@ -318,7 +340,7 @@ function extractInlineTextWithRanges(
       case 'break':
         text += '\n'; offset += 1; break;
       case 'html':
-        if (/^<br\s*\/?>$/i.test(node.value)) { text += '\n'; offset += 1; }
+        if (node.value && /^<br\s*\/?>$/i.test(node.value)) { text += '\n'; offset += 1; }
         break;
       default:
         if (node.children) node.children.forEach(walk);
@@ -330,18 +352,18 @@ function extractInlineTextWithRanges(
   return { text, styleRanges };
 }
 
-function inlineNodeToText(node: any): string {
-  if (node.type === 'text') return node.value;
-  if (node.type === 'inlineCode') return node.value;
+function inlineNodeToText(node: MdNode): string {
+  if (node.type === 'text') return node.value ?? '';
+  if (node.type === 'inlineCode') return node.value ?? '';
   if (node.type === 'image') return node.alt || '[image]';
   if (node.type === 'break') return '\n';
-  if (node.type === 'html' && /^<br\s*\/?>$/i.test(node.value)) return '\n';
+  if (node.type === 'html' && node.value && /^<br\s*\/?>$/i.test(node.value)) return '\n';
   if (node.children) return node.children.map(inlineNodeToText).join('');
   return '';
 }
 
-function pushTextStyle(arr: any[], range: StyleRange): void {
-  const textStyle: any = {};
+function pushTextStyle(arr: GoogleDocsRequest[], range: StyleRange): void {
+  const textStyle: Record<string, unknown> = {};
   const fields: string[] = [];
   if (range.bold) { textStyle.bold = true; fields.push('bold'); }
   if (range.italic) { textStyle.italic = true; fields.push('italic'); }
@@ -370,8 +392,8 @@ function pushTextStyle(arr: any[], range: StyleRange): void {
 // -- Table insertion (called from orchestration after text + styles) --
 
 interface DocsApi {
-  getDocument(): Promise<any>;
-  batchUpdate(requests: any[]): Promise<any>;
+  getDocument(): Promise<GoogleDocument>;
+  batchUpdate(requests: GoogleDocsRequest[]): Promise<unknown>;
 }
 
 export async function insertTableIntoDoc(docsApi: DocsApi, tableInfo: TableInfo): Promise<ImageRef[]> {
@@ -414,12 +436,12 @@ export async function insertTableIntoDoc(docsApi: DocsApi, tableInfo: TableInfo)
   return cellImages;
 }
 
-function findPlaceholder(doc: any): number {
-  for (const el of doc.body.content) {
+function findPlaceholder(doc: GoogleDocument): number {
+  for (const el of doc.body?.content ?? []) {
     if (!el.paragraph) continue;
-    for (const pe of el.paragraph.elements || []) {
-      if (pe.textRun && pe.textRun.content && pe.textRun.content.includes('\u200B')) {
-        return pe.startIndex;
+    for (const pe of el.paragraph.elements ?? []) {
+      if (pe.textRun?.content?.includes('\u200B')) {
+        return pe.startIndex ?? -1;
       }
     }
   }
@@ -461,20 +483,30 @@ function parseCellContent(raw: string): { plainText: string; lines: { text: stri
   return { plainText, lines: parsed, images };
 }
 
-function buildCellTextInsertions(doc: any, afterIndex: number, rows: string[][]): any[] {
-  const requests: any[] = [];
+interface InsertTextRequest extends Record<string, unknown> {
+  insertText: { location: { index: number }; text: string };
+}
+
+function buildCellTextInsertions(
+  doc: GoogleDocument,
+  afterIndex: number,
+  rows: string[][],
+): GoogleDocsRequest[] {
+  const requests: InsertTextRequest[] = [];
   const tableEl = findTableAfter(doc, afterIndex);
   if (!tableEl) return requests;
 
-  for (let r = 0; r < tableEl.tableRows.length && r < rows.length; r++) {
-    const tableRow = tableEl.tableRows[r];
-    for (let c = 0; c < tableRow.tableCells.length && c < rows[r].length; c++) {
-      const cell = tableRow.tableCells[c];
+  const tableRows = tableEl.tableRows ?? [];
+  for (let r = 0; r < tableRows.length && r < rows.length; r++) {
+    const tableRow = tableRows[r];
+    const tableCells = tableRow.tableCells ?? [];
+    for (let c = 0; c < tableCells.length && c < rows[r].length; c++) {
+      const cell = tableCells[c];
       const rawContent = rows[r][c];
       if (!rawContent) continue;
 
-      const firstPara = cell.content && cell.content[0];
-      if (!firstPara || !firstPara.paragraph) continue;
+      const firstPara = cell.content?.[0];
+      if (!firstPara || !firstPara.paragraph || firstPara.startIndex === undefined) continue;
 
       const { plainText } = parseCellContent(rawContent);
       requests.push({
@@ -486,28 +518,35 @@ function buildCellTextInsertions(doc: any, afterIndex: number, rows: string[][])
     }
   }
 
-  requests.sort((a: any, b: any) => b.insertText.location.index - a.insertText.location.index);
+  requests.sort((a, b) => b.insertText.location.index - a.insertText.location.index);
   return requests;
 }
 
-function buildCellStyleRequests(doc: any, afterIndex: number, rows: string[][]): any[] {
-  const requests: any[] = [];
+function buildCellStyleRequests(
+  doc: GoogleDocument,
+  afterIndex: number,
+  rows: string[][],
+): GoogleDocsRequest[] {
+  const requests: GoogleDocsRequest[] = [];
   const tableEl = findTableAfter(doc, afterIndex);
   if (!tableEl) return requests;
 
-  for (let r = 0; r < tableEl.tableRows.length && r < rows.length; r++) {
-    const tableRow = tableEl.tableRows[r];
-    for (let c = 0; c < tableRow.tableCells.length && c < rows[r].length; c++) {
-      const cell = tableRow.tableCells[c];
+  const tableRows = tableEl.tableRows ?? [];
+  for (let r = 0; r < tableRows.length && r < rows.length; r++) {
+    const tableRow = tableRows[r];
+    const tableCells = tableRow.tableCells ?? [];
+    for (let c = 0; c < tableCells.length && c < rows[r].length; c++) {
+      const cell = tableCells[c];
       const rawContent = rows[r][c];
       if (!rawContent) continue;
 
       const { lines } = parseCellContent(rawContent);
-      const cellParas = (cell.content || []).filter((el: any) => el.paragraph);
+      const cellParas = (cell.content ?? []).filter((el) => el.paragraph);
 
       for (let p = 0; p < cellParas.length && p < lines.length; p++) {
         const para = cellParas[p];
         const line = lines[p];
+        if (para.startIndex === undefined || para.endIndex === undefined) continue;
         const paraStart = para.startIndex;
         const paraEnd = para.endIndex - 1;
 
@@ -538,14 +577,14 @@ function buildCellStyleRequests(doc: any, afterIndex: number, rows: string[][]):
   return requests;
 }
 
-function findTableAfter(doc: any, afterIndex: number): any {
-  for (const el of doc.body.content) {
-    if (el.table && el.startIndex >= afterIndex) return el.table;
+function findTableAfter(doc: GoogleDocument, afterIndex: number): GoogleTable | null {
+  for (const el of doc.body?.content ?? []) {
+    if (el.table && (el.startIndex ?? -1) >= afterIndex) return el.table;
   }
   return null;
 }
 
-function collectTableCellImages(doc: any, afterIndex: number, rows: string[][]): ImageRef[] {
+function collectTableCellImages(doc: GoogleDocument, afterIndex: number, rows: string[][]): ImageRef[] {
   const images: ImageRef[] = [];
   const tableEl = findTableAfter(doc, afterIndex);
   if (!tableEl) return images;
@@ -564,14 +603,16 @@ function collectTableCellImages(doc: any, afterIndex: number, rows: string[][]):
   if (allCellImages.length === 0) return images;
 
   let imgIdx = 0;
-  for (let r = 0; r < tableEl.tableRows.length && r < rows.length; r++) {
-    const tableRow = tableEl.tableRows[r];
-    for (let c = 0; c < tableRow.tableCells.length && c < (rows[r] || []).length; c++) {
-      const cell = tableRow.tableCells[c];
-      for (const el of (cell.content || [])) {
+  const tableRows = tableEl.tableRows ?? [];
+  for (let r = 0; r < tableRows.length && r < rows.length; r++) {
+    const tableRow = tableRows[r];
+    const tableCells = tableRow.tableCells ?? [];
+    for (let c = 0; c < tableCells.length && c < (rows[r] || []).length; c++) {
+      const cell = tableCells[c];
+      for (const el of cell.content ?? []) {
         if (!el.paragraph) continue;
-        for (const pe of (el.paragraph.elements || [])) {
-          if (!pe.textRun || !pe.textRun.content) continue;
+        for (const pe of el.paragraph.elements ?? []) {
+          if (!pe.textRun || !pe.textRun.content || pe.startIndex === undefined) continue;
           for (let i = 0; i < pe.textRun.content.length; i++) {
             if (pe.textRun.content[i] === '\uFFFC' && imgIdx < allCellImages.length) {
               images.push({

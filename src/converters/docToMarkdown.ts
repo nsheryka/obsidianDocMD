@@ -5,6 +5,15 @@
  *   - Frontmatter added with source URL, converted date, tags
  */
 
+import type {
+  GoogleDocument,
+  GoogleList,
+  GoogleInlineObject,
+  GoogleParagraph,
+  GoogleTable,
+  GoogleTextRun,
+} from '../google/types';
+
 const HEADING_PREFIXES: Record<string, string> = {
   HEADING_1: '# ',
   HEADING_2: '## ',
@@ -23,7 +32,7 @@ export interface ConvertOptions {
   frontmatterTemplate?: string;
 }
 
-export function docToMarkdown(doc: any, options?: ConvertOptions): string {
+export function docToMarkdown(doc: GoogleDocument, options?: ConvertOptions): string {
   const { body, lists = {}, inlineObjects = {} } = doc;
   if (!body || !body.content) return '';
 
@@ -83,7 +92,11 @@ export function stripYamlFrontmatter(markdown: string): string {
   return markdown;
 }
 
-function convertParagraph(para: any, lists: any, inlineObjects: any): { text: string; isList: boolean } {
+function convertParagraph(
+  para: GoogleParagraph,
+  lists: Record<string, GoogleList>,
+  inlineObjects: Record<string, GoogleInlineObject>,
+): { text: string; isList: boolean } {
   const style = para.paragraphStyle?.namedStyleType || 'NORMAL_TEXT';
   const bullet = para.bullet;
 
@@ -109,9 +122,9 @@ function convertParagraph(para: any, lists: any, inlineObjects: any): { text: st
   }
 
   if (bullet) {
-    const nestingLevel = bullet.nestingLevel || 0;
+    const nestingLevel = bullet.nestingLevel ?? 0;
     const indent = '  '.repeat(nestingLevel);
-    const listType = getListGlyphType(lists, bullet.listId, nestingLevel);
+    const listType = getListGlyphType(lists, bullet.listId ?? '', nestingLevel);
     const prefix = listType === 'ordered' ? '1.' : '-';
     return { text: `${indent}${prefix} ${text}`, isList: true };
   }
@@ -120,12 +133,12 @@ function convertParagraph(para: any, lists: any, inlineObjects: any): { text: st
   return { text: `${headingPrefix}${text}`, isList: false };
 }
 
-function convertTextRun(textRun: any): string {
+function convertTextRun(textRun: GoogleTextRun): string {
   let content = textRun.content || '';
   const style = textRun.textStyle || {};
 
   // Strip vertical tab (soft line break / Shift+Enter in Google Docs)
-  content = content.replace(/\u000B/g, '');
+  content = content.split('\u000B').join('');
 
   // Strip the trailing newline that Google appends to each paragraph element
   const trailingNewline = content.endsWith('\n') ? '\n' : '';
@@ -165,7 +178,10 @@ function convertTextRun(textRun: any): string {
   return content + trailingNewline;
 }
 
-function convertInlineObject(inlineObjectElement: any, inlineObjects: any): string {
+function convertInlineObject(
+  inlineObjectElement: { inlineObjectId?: string },
+  inlineObjects: Record<string, GoogleInlineObject>,
+): string {
   const id = inlineObjectElement.inlineObjectId;
   if (!id || !inlineObjects[id]) return '';
 
@@ -181,14 +197,18 @@ function convertInlineObject(inlineObjectElement: any, inlineObjects: any): stri
   return `![${altText}](${uri})`;
 }
 
-function convertTable(table: any, lists: any, inlineObjects: any): string {
+function convertTable(
+  table: GoogleTable,
+  lists: Record<string, GoogleList>,
+  inlineObjects: Record<string, GoogleInlineObject>,
+): string {
   const rows = table.tableRows || [];
   if (rows.length === 0) return '';
 
-  const mdRows = rows.map((row: any) => {
-    const cells = (row.tableCells || []).map((cell: any) => {
+  const mdRows = rows.map((row) => {
+    const cells = (row.tableCells || []).map((cell) => {
       const cellText = (cell.content || [])
-        .map((elem: any) => {
+        .map((elem) => {
           if (elem.paragraph) {
             const { text } = convertParagraph(elem.paragraph, lists, inlineObjects);
             return text.trim();
@@ -211,7 +231,11 @@ function convertTable(table: any, lists: any, inlineObjects: any): string {
   return [mdRows[0], separator, ...mdRows.slice(1)].join('\n') + '\n';
 }
 
-function getListGlyphType(lists: any, listId: string, nestingLevel: number): string {
+function getListGlyphType(
+  lists: Record<string, GoogleList>,
+  listId: string,
+  nestingLevel: number,
+): string {
   try {
     const nestingLevels = lists[listId]?.listProperties?.nestingLevels || [];
     const level = nestingLevels[nestingLevel] || {};

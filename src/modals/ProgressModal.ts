@@ -16,8 +16,7 @@ export class ProgressModal extends Modal {
 
     this.logContainer = contentEl.createDiv({ cls: 'docmd-progress-log' });
 
-    this.closeButton = contentEl.createEl('button', { text: 'Close', cls: 'mod-cta' });
-    this.closeButton.style.display = 'none';
+    this.closeButton = contentEl.createEl('button', { text: 'Close', cls: 'mod-cta docmd-log-hidden' });
     this.closeButton.addEventListener('click', () => this.close());
   }
 
@@ -33,13 +32,13 @@ export class ProgressModal extends Modal {
       this.log(message, 'success');
     }
     this.finished = true;
-    this.closeButton.style.display = '';
+    this.closeButton.removeClass('docmd-log-hidden');
   }
 
   showError(message: string): void {
     this.log(message, 'error');
     this.finished = true;
-    this.closeButton.style.display = '';
+    this.closeButton.removeClass('docmd-log-hidden');
   }
 
   onClose(): void {

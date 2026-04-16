@@ -3,6 +3,16 @@ import { requestUrl } from 'obsidian';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
 const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files';
 
+interface GoogleInlineObject {
+  inlineObjectProperties?: {
+    embeddedObject?: {
+      imageProperties?: {
+        contentUri?: string;
+      };
+    };
+  };
+}
+
 function authHeaders(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
@@ -116,8 +126,8 @@ export async function getImageContentUri(
   let contentUri: string | null = null;
   const inlineObjects = docResp.json.inlineObjects;
   if (inlineObjects) {
-    for (const obj of Object.values(inlineObjects) as any[]) {
-      const uri = obj?.inlineObjectProperties?.embeddedObject?.imageProperties?.contentUri;
+    for (const obj of Object.values(inlineObjects)) {
+      const uri = (obj as GoogleInlineObject)?.inlineObjectProperties?.embeddedObject?.imageProperties?.contentUri;
       if (uri) {
         contentUri = uri;
         break;

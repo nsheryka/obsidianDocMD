@@ -4,6 +4,7 @@ import { parseFolderId } from '../google/drive';
 import { createDocument, batchUpdate, getDocument } from '../google/docs';
 import { moveFileToFolder, getFileWebLink, getImageContentUri, deleteFile } from '../google/drive';
 import { markdownToDocRequests, insertTableIntoDoc } from '../converters/markdownToDoc';
+import type { GoogleDocsRequest } from '../google/types';
 import { stripYamlFrontmatter } from '../converters/docToMarkdown';
 import { convertMdWithLinks } from '../converters/linkedDocs';
 import { resolveImageInVault, guessMimeType } from '../converters/images';
@@ -50,7 +51,7 @@ export class MdToDocModal extends Modal {
       .addText(text => {
         this.folderUrlInput = text.inputEl;
         text.setPlaceholder('https://drive.google.com/drive/folders/...');
-        text.inputEl.style.width = '100%';
+        text.inputEl.addClass('docmd-wide-input');
       });
 
     // Recursive toggle
@@ -81,12 +82,12 @@ export class MdToDocModal extends Modal {
 
   private async doConvert(): Promise<void> {
     if (this.files.length === 0) {
-      new Notice('DocMD: No files to export.');
+      new Notice('No files to export');
       return;
     }
     const folderUrl = this.folderUrlInput.value.trim();
     if (!folderUrl) {
-      new Notice('DocMD: Enter a Google Drive folder URL.');
+      new Notice('Enter a Google Drive folder URL');
       return;
     }
 
@@ -94,7 +95,7 @@ export class MdToDocModal extends Modal {
     try {
       folderId = parseFolderId(folderUrl);
     } catch {
-      new Notice('DocMD: Invalid Google Drive folder URL.');
+      new Notice('Invalid Google Drive folder URL');
       return;
     }
 
@@ -151,6 +152,7 @@ export class MdToDocModal extends Modal {
         progress.log(`Creating Google Doc "${title}"...`);
         const newDoc = await createDocument(token, title);
         const docId = newDoc.documentId;
+        if (!docId) throw new Error('Google Docs API did not return a document ID');
 
         // Generate batchUpdate requests
         const { textRequests, styleRequests, tables, images } = markdownToDocRequests(markdownContent);
@@ -177,7 +179,13 @@ export class MdToDocModal extends Modal {
               const { contentUri, tempDocId } = await getImageContentUri(token, imageData, mimeType);
               if (!contentUri) {
                 progress.log(`Failed to upload: ${img.src}`, 'error');
-                if (tempDocId) try { await deleteFile(token, tempDocId); } catch {}
+                if (tempDocId) {
+                  try {
+                    await deleteFile(token, tempDocId);
+                  } catch {
+                    // Best-effort cleanup; ignore errors
+                  }
+                }
                 continue;
               }
 
@@ -188,7 +196,11 @@ export class MdToDocModal extends Modal {
                 { insertInlineImage: { location: { index: img.index }, uri: contentUri } },
               ]);
 
-              try { await deleteFile(token, tempDocId); } catch {}
+              try {
+                await deleteFile(token, tempDocId);
+              } catch {
+                // Best-effort cleanup; ignore errors
+              }
             } catch (err) {
               progress.log(`Image error (${img.src}): ${(err as Error).message}`, 'error');
             }
@@ -206,7 +218,7 @@ export class MdToDocModal extends Modal {
           progress.log(`Inserting ${tables.length} table(s)...`);
           const docsApi = {
             getDocument: () => getDocument(token, docId),
-            batchUpdate: (reqs: any[]) => batchUpdate(token, docId, reqs),
+            batchUpdate: (reqs: GoogleDocsRequest[]) => batchUpdate(token, docId, reqs),
           };
           for (const tableInfo of tables) {
             await insertTableIntoDoc(docsApi, tableInfo);

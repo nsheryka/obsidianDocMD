@@ -51,7 +51,7 @@ export class ConflictModal extends Modal {
     contentEl.addClass('docmd-conflict-modal');
 
     const filename = this.filePath.split('/').pop() || this.filePath;
-    this.titleEl.setText('File Already Exists');
+    this.titleEl.setText('File already exists');
 
     contentEl.createEl('p', {
       text: `"${filename}" already exists in the output folder. What would you like to do?`,
@@ -67,7 +67,7 @@ export class ConflictModal extends Modal {
     btnRow.createEl('button', { text: 'Rename' })
       .addEventListener('click', () => this.showRenameView());
 
-    btnRow.createEl('button', { text: 'Review Diff', cls: 'mod-cta' })
+    btnRow.createEl('button', { text: 'Review diff', cls: 'mod-cta' })
       .addEventListener('click', () => this.showDiffView());
   }
 
@@ -77,7 +77,7 @@ export class ConflictModal extends Modal {
     this.modalEl.removeClass('docmd-diff-modal');
 
     const filename = this.filePath.split('/').pop()?.replace(/\.md$/, '') || 'document';
-    this.titleEl.setText('Rename File');
+    this.titleEl.setText('Rename file');
 
     contentEl.createEl('p', { text: `Choose a new name to avoid overwriting ${filename}.md` });
 

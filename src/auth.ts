@@ -124,7 +124,7 @@ export class AuthManager {
     await this.plugin.saveSettings();
   }
 
-  async disconnect(): Promise<void> {
+  disconnect(): void {
     this.plugin.settings.tokens = null;
   }
 

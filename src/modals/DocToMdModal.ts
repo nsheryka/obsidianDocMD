@@ -41,7 +41,6 @@ export class DocToMdModal extends Modal {
         this.urlInput = text.inputEl;
         text.setPlaceholder('https://docs.google.com/document/d/...');
         text.inputEl.rows = 4;
-        text.inputEl.style.width = '100%';
       });
 
     // Folder picker
@@ -87,11 +86,11 @@ export class DocToMdModal extends Modal {
   private async doConvert(): Promise<void> {
     const rawUrls = this.urlInput.value.trim();
     if (!rawUrls) {
-      new Notice('DocMD: Enter at least one Google Doc URL.');
+      new Notice('Enter at least one Google Doc URL');
       return;
     }
     if (!this.selectedFolder) {
-      new Notice('DocMD: Select an output folder.');
+      new Notice('Select an output folder');
       return;
     }
 

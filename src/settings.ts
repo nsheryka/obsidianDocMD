@@ -45,8 +45,8 @@ export class DocMDSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    // --- Google API Credentials ---
-    containerEl.createEl('h2', { text: 'Google API Credentials' });
+    // --- Google API credentials ---
+    new Setting(containerEl).setName('Google API credentials').setHeading();
 
     // Expandable setup instructions
     const detailsEl = containerEl.createEl('details', { cls: 'docmd-setup-instructions' });
@@ -67,9 +67,9 @@ export class DocMDSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Client ID')
-      .setDesc('OAuth 2.0 Client ID from Google Cloud Console')
+      .setDesc('Client ID from Google Cloud Console')
       .addText(text => text
-        .setPlaceholder('Enter Client ID')
+        .setPlaceholder('Enter client ID')
         .setValue(this.plugin.settings.clientId)
         .onChange(async (value) => {
           this.plugin.settings.clientId = value.trim();
@@ -80,11 +80,11 @@ export class DocMDSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Client Secret')
-      .setDesc('OAuth 2.0 Client Secret from Google Cloud Console')
+      .setName('Client secret')
+      .setDesc('Client secret from Google Cloud Console')
       .addText(text => {
         text
-          .setPlaceholder('Enter Client Secret')
+          .setPlaceholder('Enter client secret')
           .setValue(this.plugin.settings.clientSecret)
           .onChange(async (value) => {
             this.plugin.settings.clientSecret = value.trim();
@@ -103,7 +103,7 @@ export class DocMDSettingTab extends PluginSettingTab {
 
     if (isAuthenticated) {
       new Setting(containerEl)
-        .setName('Google Account')
+        .setName('Google account')
         .setDesc('Connected')
         .addButton(btn => btn
           .setButtonText('Disconnect')
@@ -111,35 +111,35 @@ export class DocMDSettingTab extends PluginSettingTab {
           .onClick(async () => {
             this.authManager.disconnect();
             await this.plugin.saveSettings();
-            new Notice('DocMD: Google account disconnected');
+            new Notice('Google account disconnected');
             this.display();
           }));
     } else if (hasCredentials) {
       new Setting(containerEl)
-        .setName('Google Account')
+        .setName('Google account')
         .setDesc('Not connected')
         .addButton(btn => btn
-          .setButtonText('Connect Google Account')
+          .setButtonText('Connect Google account')
           .setCta()
           .onClick(async () => {
             try {
               await this.authManager.startOAuthFlow();
               await this.plugin.saveSettings();
-              new Notice('DocMD: Google account connected!');
+              new Notice('Google account connected');
               this.display();
             } catch (e) {
-              new Notice(`DocMD: Auth failed - ${e.message}`);
+              new Notice(`Auth failed - ${(e as Error).message}`);
             }
           }));
     } else {
       containerEl.createEl('p', {
-        text: 'Enter your Client ID and Client Secret above, then connect your Google account.',
+        text: 'Enter your client ID and client secret above, then connect your Google account.',
         cls: 'setting-item-description',
       });
     }
 
     // --- Defaults ---
-    containerEl.createEl('h2', { text: 'Defaults' });
+    new Setting(containerEl).setName('Defaults').setHeading();
 
     new Setting(containerEl)
       .setName('Follow links recursively')
@@ -182,14 +182,14 @@ export class DocMDSettingTab extends PluginSettingTab {
       });
       textareaEl.value = this.plugin.settings.frontmatterFields;
       textareaEl.rows = 5;
-      textareaEl.addEventListener('input', async () => {
+      textareaEl.addEventListener('input', () => {
         this.plugin.settings.frontmatterFields = textareaEl.value;
-        await this.plugin.saveSettings();
+        void this.plugin.saveSettings();
       });
     }
 
     // --- Interface ---
-    containerEl.createEl('h2', { text: 'Interface' });
+    new Setting(containerEl).setName('Interface').setHeading();
 
     new Setting(containerEl)
       .setName('Show ribbon icons')

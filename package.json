@@ -5,19 +5,27 @@
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "lint": "eslint src"
   },
   "dependencies": {
-    "unified": "^11.0.5",
+    "remark-gfm": "^4.0.0",
     "remark-parse": "^11.0.0",
-    "remark-gfm": "^4.0.0"
+    "unified": "^11.0.5"
   },
   "devDependencies": {
-    "obsidian": "latest",
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^1.2.0",
     "@types/node": "^20.0.0",
-    "typescript": "^5.4.0",
-    "esbuild": "^0.20.0",
+    "@typescript-eslint/parser": "^8.58.2",
     "builtin-modules": "^3.3.0",
-    "tslib": "^2.6.0"
+    "esbuild": "^0.20.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-obsidianmd": "^0.1.9",
+    "globals": "^14.0.0",
+    "obsidian": "latest",
+    "tslib": "^2.6.0",
+    "typescript": "^5.4.0",
+    "typescript-eslint": "^8.58.2"
   }
 }
