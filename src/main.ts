@@ -17,13 +17,13 @@ export default class DocMDPlugin extends Plugin {
 
     this.addCommand({
       id: 'doc-to-md',
-      name: 'Import Google Doc to Markdown',
+      name: 'Import google doc to Markdown',
       callback: () => { this.openImportModal(); },
     });
 
     this.addCommand({
       id: 'md-to-doc',
-      name: 'Export Markdown to Google Doc',
+      name: 'Export Markdown to google doc',
       callback: () => {
         const activeFile = this.app.workspace.getActiveFile();
         const files = activeFile ? [activeFile] : [];
@@ -38,7 +38,7 @@ export default class DocMDPlugin extends Plugin {
 
         if (file instanceof TFile && file.extension === 'md') {
           menu.addItem(item => {
-            item.setTitle('Export to Google Doc')
+            item.setTitle('Export to google doc')
               .setIcon('upload')
               .onClick(() => this.openExportModal([file]));
           });
@@ -46,12 +46,12 @@ export default class DocMDPlugin extends Plugin {
 
         if (file instanceof TFolder) {
           menu.addItem(item => {
-            item.setTitle('Import Google Doc here')
+            item.setTitle('Import google doc here')
               .setIcon('download')
               .onClick(() => this.openImportModal(file));
           });
           menu.addItem(item => {
-            item.setTitle('Export folder to Google Docs')
+            item.setTitle('Export folder to google docs')
               .setIcon('upload')
               .onClick(() => {
                 const mdFiles = this.app.vault.getMarkdownFiles()
@@ -84,7 +84,7 @@ export default class DocMDPlugin extends Plugin {
 
   private openImportModal(presetFolder?: TFolder): void {
     if (!this.authManager.isAuthenticated()) {
-      new Notice('Connect your Google account in settings first');
+      new Notice('Connect your google account in settings first');
       return;
     }
     new DocToMdModal(this.app, this, presetFolder).open();
@@ -92,7 +92,7 @@ export default class DocMDPlugin extends Plugin {
 
   private openExportModal(files: TFile[]): void {
     if (!this.authManager.isAuthenticated()) {
-      new Notice('Connect your Google account in settings first');
+      new Notice('Connect your google account in settings first');
       return;
     }
     new MdToDocModal(this.app, this, files).open();
@@ -107,13 +107,13 @@ export default class DocMDPlugin extends Plugin {
     if (!this.settings.enableRibbon) return;
 
     this.ribbonIcons.push(
-      this.addRibbonIcon('download', 'Import Google Doc to Markdown', () => {
+      this.addRibbonIcon('download', 'Import google doc to Markdown', () => {
         this.openImportModal();
       })
     );
 
     this.ribbonIcons.push(
-      this.addRibbonIcon('upload', 'Export Markdown to Google Doc', () => {
+      this.addRibbonIcon('upload', 'Export Markdown to google doc', () => {
         const activeFile = this.app.workspace.getActiveFile();
         const files = activeFile ? [activeFile] : [];
         this.openExportModal(files);

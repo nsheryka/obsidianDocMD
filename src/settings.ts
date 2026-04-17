@@ -50,7 +50,7 @@ export class DocMDSettingTab extends PluginSettingTab {
 
     // Expandable setup instructions
     const detailsEl = containerEl.createEl('details', { cls: 'docmd-setup-instructions' });
-    detailsEl.createEl('summary', { text: 'How to get Google API credentials' });
+    detailsEl.createEl('summary', { text: 'How to get google API credentials' });
     const stepsEl = detailsEl.createEl('ol');
     const steps = [
       'Go to console.cloud.google.com',
@@ -67,7 +67,7 @@ export class DocMDSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Client ID')
-      .setDesc('Client ID from Google Cloud Console')
+      .setDesc('Client ID from google cloud console')
       .addText(text => text
         .setPlaceholder('Enter client ID')
         .setValue(this.plugin.settings.clientId)
@@ -81,7 +81,7 @@ export class DocMDSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Client secret')
-      .setDesc('Client secret from Google Cloud Console')
+      .setDesc('Client secret from google cloud console')
       .addText(text => {
         text
           .setPlaceholder('Enter client secret')
@@ -119,7 +119,7 @@ export class DocMDSettingTab extends PluginSettingTab {
         .setName('Google account')
         .setDesc('Not connected')
         .addButton(btn => btn
-          .setButtonText('Connect Google account')
+          .setButtonText('Connect google account')
           .setCta()
           .onClick(async () => {
             try {
@@ -133,7 +133,7 @@ export class DocMDSettingTab extends PluginSettingTab {
           }));
     } else {
       containerEl.createEl('p', {
-        text: 'Enter your client ID and client secret above, then connect your Google account.',
+        text: 'Enter your client ID and client secret above, then connect your google account.',
         cls: 'setting-item-description',
       });
     }
@@ -153,7 +153,7 @@ export class DocMDSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Enable YAML frontmatter on imported notes')
-      .setDesc('When enabled, imported Google Docs will include YAML frontmatter and exports will strip it by default. These options appear in the conversion dialogs.')
+      .setDesc('When enabled, imported google docs will include YAML frontmatter and exports will strip it by default. These options appear in the conversion dialogs.')
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.enableFrontmatter)
         .onChange(async (value) => {

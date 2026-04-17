@@ -30,12 +30,12 @@ export class DocToMdModal extends Modal {
 
   onOpen(): void {
     const { contentEl } = this;
-    this.titleEl.setText('Import Google Doc to Markdown');
+    this.titleEl.setText('Import google doc to Markdown');
     contentEl.addClass('docmd-modal');
 
     // URL input
     new Setting(contentEl)
-      .setName('Google Doc URL(s)')
+      .setName('Google doc URL(s)')
       .setDesc('One URL per line')
       .addTextArea(text => {
         this.urlInput = text.inputEl;
@@ -86,7 +86,7 @@ export class DocToMdModal extends Modal {
   private async doConvert(): Promise<void> {
     const rawUrls = this.urlInput.value.trim();
     if (!rawUrls) {
-      new Notice('Enter at least one Google Doc URL');
+      new Notice('Enter at least one google doc URL');
       return;
     }
     if (!this.selectedFolder) {

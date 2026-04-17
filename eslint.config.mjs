@@ -2,21 +2,10 @@ import tsparser from "@typescript-eslint/parser";
 import { defineConfig } from "eslint/config";
 import obsidianmd from "eslint-plugin-obsidianmd";
 import globals from "globals";
-import { DEFAULT_BRANDS } from "eslint-plugin-obsidianmd/dist/lib/rules/ui/brands.js";
 
-// Google-branded product names this plugin uses in its UI. Extend (rather than
-// replace) the default Obsidian brand list so "Markdown", "Google Drive", etc.
-// still get their canonical casing.
-const BRANDS = [
-  ...DEFAULT_BRANDS,
-  "Google",
-  "Google Doc",
-  "Google Docs",
-  "Google Cloud",
-  "Google Cloud Console",
-  "BRAT",
-];
-
+// Use the obsidianmd recommended config as-is — the community plugin review bot
+// runs with default brands, so we match that baseline locally to catch the same
+// violations it will flag.
 export default defineConfig([
   ...obsidianmd.configs.recommended,
   {
@@ -31,7 +20,7 @@ export default defineConfig([
     },
     ignores: ["node_modules/**", "main.js"],
     rules: {
-      "obsidianmd/ui/sentence-case": ["error", { brands: BRANDS }],
+      "obsidianmd/ui/sentence-case": ["error", { allowAutoFix: true }],
     },
   },
 ]);

@@ -29,7 +29,7 @@ export class MdToDocModal extends Modal {
 
   onOpen(): void {
     const { contentEl } = this;
-    this.titleEl.setText('Export Markdown to Google Doc');
+    this.titleEl.setText('Export Markdown to google doc');
     contentEl.addClass('docmd-modal');
 
     // File list display
@@ -66,7 +66,7 @@ export class MdToDocModal extends Modal {
     if (this.plugin.settings.enableFrontmatter) {
       new Setting(contentEl)
         .setName('Strip YAML frontmatter')
-        .setDesc('Remove YAML frontmatter before uploading to Google Docs')
+        .setDesc('Remove YAML frontmatter before uploading to google docs')
         .addToggle(toggle => toggle
           .setValue(this.stripFrontmatterToggle)
           .onChange(value => { this.stripFrontmatterToggle = value; }));
